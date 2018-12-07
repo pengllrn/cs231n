@@ -1,0 +1,5 @@
+#È¡ÊıÑµÁ·20
+tr20=pd.read_csv("E:/Jupyter/data/tr20.csv")
+na=np.array(tr20)
+x_tr20=na[:,:3072]
+y_tr20=na[:,3072]
