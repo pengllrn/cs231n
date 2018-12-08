@@ -1,14 +1,14 @@
 
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import numpy as np
 import pandas as pd
 
 
-# In[35]:
+# In[2]:
 
 
 #初始化模型的参数向量，即得到一个初始模型
@@ -26,7 +26,7 @@ def init_model(input_size, hidden_size, output_size, std=1e-4):
 model=init_model(32*32*3,50,10)
 
 
-# In[46]:
+# In[3]:
 
 
 #定义一个两层的神经网络
@@ -86,7 +86,7 @@ def two_layer_net(X,y,model,reg):
     return loss,grads
 
 
-# In[11]:
+# In[4]:
 
 
 #取数据
@@ -97,21 +97,21 @@ X_tr20=na[:,:3072]
 y_tr20=na[:,3072]
 
 
-# In[12]:
+# In[6]:
 
 
 loss,grads=two_layer_net(X_tr20,y_tr20,model,0)
 loss
 
 
-# In[13]:
+# In[7]:
 
 
 loss,grads=two_layer_net(X_tr20,y_tr20,model,500)
 loss
 
 
-# In[28]:
+# In[44]:
 
 
 ##正式开始训练
@@ -147,11 +147,11 @@ def train(X, y, X_val, y_val,
         train_acc = (predict(X,model) == y).mean()
         val_acc = (predict(X_val,model) == y_val).mean()
         #显示训练进度
-        if verbose and (it+1) % 1 == 0:
+        if verbose and it % 10 == 0:
             print('Finished epoch %d / %d: loss %f, train_acc: %f, val_acc: %f' % (it, num_epochs, loss,train_acc,val_acc))
 
 
-# In[29]:
+# In[9]:
 
 
 #取50个数据作为验证集
@@ -166,18 +166,50 @@ X_tr1000=na[:,:3072]
 y_tr1000=na[:,3072]
 
 
-# In[47]:
+# In[54]:
 
 
-#先检验一下
+#先检验一下，模型是不是正确的
 reg=0
 lr=1e-4
-train(X_tr20,y_tr20,X_val50,y_val50,model,two_layer_net,100,reg,lr)
+model=init_model(32*32*3,50,10)
+train(X_tr20,y_tr20,X_val50,y_val50,model,two_layer_net,300,reg,lr)
 
 
-# In[18]:
+# In[ ]:
 
 
-#出问题了，loss不为0
-#two_layer_net的梯度应该有问题
+#很好，产生过拟合，训练集的精度为100%，说明模型没问题
+
+
+# In[46]:
+
+
+#正式训练
+#第一步：调一个合适的学习率
+reg=0
+lr=2*1e-4
+model=init_model(32*32*3,50,10)
+train(X_tr1000,y_tr1000,X_val50,y_val50,model,two_layer_net,300,reg,lr)
+
+
+# In[52]:
+
+
+reg=500
+lr=3*1e-4
+model=init_model(32*32*3,50,10)
+train(X_tr1000,y_tr1000,X_val50,y_val50,model,two_layer_net,300,reg,lr)
+
+
+# In[48]:
+
+
+print(predict(X_tr20,model))
+
+
+# In[49]:
+
+
+print(y_tr20)
 
