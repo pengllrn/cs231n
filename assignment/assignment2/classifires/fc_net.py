@@ -2,8 +2,8 @@ from builtins import range
 from builtins import object
 import numpy as np
 
-from cs231n.layers import *
-from cs231n.layer_utils import *
+from assignment2.cs231n.layers import *
+from assignment2.cs231n.layer_utils import *
 
 
 class TwoLayerNet(object):
@@ -22,8 +22,8 @@ class TwoLayerNet(object):
     self.params that maps parameter names to numpy arrays.
     """
 
-    def __init__(self, input_dim=3*32*32, hidden_dim=100, num_classes=10,
-                 weight_scale=1e-3, reg=0.0):
+    def __init__(self, input_dim=3 * 32 * 32, hidden_dim=100, num_classes=10,
+                 weight_scale=1e-4, reg=0.0):
         """
         Initialize a new network.
 
@@ -38,7 +38,6 @@ class TwoLayerNet(object):
         """
         self.params = {}
         self.reg = reg
-
 
         ############################################################################
         # TODO: Initialize the weights and biases of the two-layer net. Weights    #
@@ -55,7 +54,6 @@ class TwoLayerNet(object):
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-
 
     def loss(self, X, y=None):
         """
@@ -84,13 +82,10 @@ class TwoLayerNet(object):
         W1, b1 = self.params['W1'], self.params['b1']
         W2, b2 = self.params['W2'], self.params['b2']
 
-        a1, fc_cache1 = affine_forward(X, W1, b1)
-        out1, relu_cache1 = relu_forward(a1)
-
-        a2, fc_cache2 = affine_forward(out1, W2, b2)
-        out2, relu_cache2 = relu_forward(a2)
-
-        scores=out2
+        a1, a1_cache = affine_forward(X, W1, b1)
+        out1, r1_cache = relu_forward(a1)
+        a2, a2_cache = affine_forward(out1, W2, b2)
+        scores = a2
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -111,33 +106,49 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         data_loss, dout = softmax_loss(scores, y)
-        reg_loss= 0.5*self.reg * (np.sum(W2 ** 2) + np.sum(W1 ** 2))
+        reg_loss = 0.5 * self.reg * (np.sum(W1 ** 2) + np.sum(W2 ** 2))
         loss = data_loss + reg_loss
 
-        da2 = relu_backward(dout, relu_cache2)
-        dx2, dW2, db2 = affine_backward(da2, fc_cache2)
-
-        da1 = np.dot(da2, W2.T)
-        dx1, dW1, db1 = affine_backward(da1, fc_cache1)
-
-        dW1+=self.reg*W1
-        dW2 += self.reg * W2
-
-        grads['W2'] = dW2
-        grads['b2'] = db2
-        grads['W1'] = dW1
-        grads['b1'] = db1
+        dX2, dW2, db2 = affine_backward(dout, a2_cache)
+        dout = relu_backward(dX2, r1_cache)
+        dX1, dW1, db1 = affine_backward(dout, a1_cache)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
 
+        dW1 += self.reg * W1
+        dW2 += self.reg * W2
+
+        grads['W1'] = dW1
+        grads['b1'] = db1
+        grads['W2'] = dW2
+        grads['b2'] = db2
         return loss, grads
 
+    def predict(self, X):
+        scores = self.loss(X)
+        y_pred = np.argmax(scores, axis=1)
+        return y_pred
+
+    def fix(self, X, y, X_val, y_val, lerrn_rate, num_epochs=100, verbose=True):
+        for i in range(num_epochs):
+            loss, grads = self.loss(X, y)
+            for j in range(2):
+                self.params['W%d' % (j + 1)] += -lerrn_rate * grads['W%d' % (j + 1)]
+                self.params['b%d' % (j + 1)] += -lerrn_rate * grads['b%d' % (j + 1)]
+
+            train_acc = (self.predict(X) == y).mean()
+            val_acc = (self.predict(X_val) == y_val).mean()
+
+            if verbose:
+                print('Finished epoch %d / %d: loss %f, train_acc: %f, val_acc: %f' % (
+                i, num_epochs, loss, train_acc, val_acc))
 
 
 
 class FullyConnectedNet(object):
     """
+    L层全连接（FC）神经网络，普通神经网络
     A fully-connected neural network with an arbitrary number of hidden layers,
     ReLU nonlinearities, and a softmax loss function. This will also implement
     dropout and batch normalization as options. For a network with L layers,
@@ -152,8 +163,8 @@ class FullyConnectedNet(object):
     self.params dictionary and will be learned using the Solver class.
     """
 
-    def __init__(self, hidden_dims, input_dim=3*32*32, num_classes=10,
-                 dropout=0, use_batchnorm=False, reg=0.0,
+    def __init__(self, hidden_dims, input_dim=3 * 32 * 32, num_classes=10,
+                 dropout=0.0, use_batchnorm=False, reg=0.0,
                  weight_scale=1e-2, dtype=np.float32, seed=None):
         """
         Initialize a new FullyConnectedNet.
@@ -175,8 +186,8 @@ class FullyConnectedNet(object):
           will make the dropout layers deteriminstic so we can gradient check the
           model.
         """
-        self.use_batchnorm = use_batchnorm
-        self.use_dropout = dropout > 0
+        self.use_batchnorm = use_batchnorm  # 是否使用BN
+        self.use_dropout = dropout > 0  # 是否使用dropout
         self.reg = reg
         self.num_layers = 1 + len(hidden_dims)
         self.dtype = dtype
@@ -194,20 +205,20 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-
         for layer in range(self.num_layers):
-            if layer==0:
-                layer_dim=(input_dim,hidden_dims[layer])
-            elif layer==self.num_layers-1:
+            if layer == 0:
+                layer_dim = (input_dim, hidden_dims[layer])
+            elif layer == self.num_layers - 1:
                 layer_dim = (hidden_dims[layer - 1], num_classes)
             else:
-                layer_dim = (hidden_dims[layer-1], hidden_dims[layer])
-            self.params['W%d'%(layer+1)] = weight_scale * np.random.randn(layer_dim[0],layer_dim[1])
-            self.params['b%d'%(layer+1)] = np.zeros(layer_dim[1])
-            #batch normalization intialize
-            if self.use_batchnorm and layer!=self.num_layers-1:
-                self.params['gamma%d' % (layer + 1)] = np.ones(layer_dim[1])
-                self.params['beta%d' % (layer + 1)] = np.zeros(layer_dim[1])
+                layer_dim = (hidden_dims[layer - 1], hidden_dims[layer])
+            self.params['W%d' % (layer + 1)] = weight_scale * np.random.randn(layer_dim[0], layer_dim[1])
+            self.params['b%d' % (layer + 1)] = np.zeros(layer_dim[1])
+
+            if self.use_batchnorm and layer != self.num_layers - 1:
+                self.params['gama%d' % (layer + 1)] = np.ones(layer_dim[1])  #scale应该为1
+                self.params['beta%d' % (layer + 1)] = np.zeros(layer_dim[1])  #shift应该为0
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -233,7 +244,6 @@ class FullyConnectedNet(object):
         # Cast all parameters to the correct datatype
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
-
 
     def loss(self, X, y=None):
         """
@@ -266,34 +276,34 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         inputi=X
-        # use for BP
         fc_cache_list=[]
-        relu_cache_list=[]
         bn_cache_list=[]
-        dropout_cache_list=[]
-        for layer in range(self.num_layers):
-            #forward
-            Wi,bi=self.params['W%d'%(layer+1)],self.params['b%d'%(layer+1)]
-            outi, fc_cachei = affine_forward(inputi, Wi, bi)
-            fc_cache_list.append(fc_cachei)
+        relu_cache_list=[]
+        drop_cache_list=[]
 
-            #batch normalization:the last layer of the network should not be normalized
-            if self.use_batchnorm and layer!=self.num_layers-1:
-                gammai, betai = self.params['gamma%d' % (layer + 1)], self.params['beta%d' % (layer + 1)]
-                outi, bn_cachei=batchnorm_forward(outi, gammai, betai, self.bn_params[layer])
-                bn_cache_list.append(bn_cachei)
-            #relu
-            outi, relu_cachei = relu_forward(outi)
-            relu_cache_list.append(relu_cachei)
-
-            #dropout
-            if self.use_dropout:
-                outi, dropout_cachei=dropout_forward(outi, self.dropout_param)
-                dropout_cache_list.append(dropout_cachei)
+        #network forward
+        for layer in range(self.num_layers-1):
+            Wi,bi=self.params["W%d"%(layer+1)],self.params["b%d"%(layer+1)]
+            #affine forward
+            outi,fc_cache=affine_forward(inputi,Wi,bi)
+            fc_cache_list.append(fc_cache)
+            #[batchnorm forward]
+            if self.use_batchnorm and (layer!=self.num_layers-1):
+                gamai,betai=self.params['gama%d'%(layer+1)],self.params['beta%d' % (layer + 1)]
+                outi,bn_cache=batchnorm_forward(outi,gamai,betai,self.bn_params[layer])
+                bn_cache_list.append(bn_cache)
+            #relu forward
+            outi,relu_cache=relu_forward(outi)
+            relu_cache_list.append(relu_cache)
+            #[dropout forward]
+            if self.use_dropout and (layer!=self.num_layers-1):
+                outi,drop_cache=dropout_forward(outi,self.dropout_param)
+                drop_cache_list.append(drop_cache)
 
             inputi=outi
-
-        scores = outi
+        Wn,bn=self.params['W%d' % (self.num_layers)],self.params['b%d' % (self.num_layers)]
+        outn,fc_cache_n=affine_forward(inputi,Wn,bn)
+        scores=outn
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -316,38 +326,79 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-
-        data_loss, dout = softmax_loss(scores, y)
-        W_square_sum =0
+        #backward
+        data_loss,dout=softmax_loss(scores,y)
+        W_square_sum=0.0
         for layer in range(self.num_layers):
-            Wi=self.params['W%d' % (layer+1)]
-            W_square_sum+=(np.sum(Wi**2))
-        reg_loss= 0.5*self.reg * W_square_sum
-        loss = data_loss + reg_loss
+            Wi=self.params['W%d' % (layer + 1)]
+            W_square_sum += np.sum(Wi**2)
+        reg_loss = 0.5*self.reg*W_square_sum
+        loss=data_loss+reg_loss
 
-        for layer in list(range(self.num_layers,0,-1)):
-            #dropout
+        dout,dWn,dbn=affine_backward(dout,fc_cache_n)
+        for layer in range(self.num_layers-1,0,-1): #倒序[num_layer-1,...,1]
             if self.use_dropout:
-                dout=dropout_backward(dout, dropout_cache_list[layer-1])
-            #relu
-            dout = relu_backward(dout, relu_cache_list[layer-1])
-            #batch normalization: the last layer of the network should not be normalized
-            if self.use_batchnorm and layer != self.num_layers:
-                dout, dgamma, dbeta = batchnorm_backward(dout, bn_cache_list[layer-1])
-                grads['gamma%d' % (layer)] = dgamma
-                grads['beta%d' % (layer)] = dbeta
+                dout=dropout_backward(dout,drop_cache_list[layer-1])
 
-            #backforward
-            dxi, dWi, dbi = affine_backward(dout, fc_cache_list[layer-1])
-            dWi+=self.reg*self.params['W%d' % (layer)]
+            dout=relu_backward(dout,relu_cache_list[layer-1])
 
-            grads['W%d' % (layer)] = dWi
-            grads['b%d' % (layer)] = dbi
+            if self.use_batchnorm:
+                dout,dgama,dbeta=batchnorm_backward(dout,bn_cache_list[layer-1])
+                grads['gama%d'%(layer)]=dgama
+                grads['beta%d'%(layer)]=dbeta
 
-            dout = np.dot(dout, self.params['W%d' % (layer)].T)
+            dX,dW,db=affine_backward(dout,fc_cache_list[layer-1])
 
+            dW+=self.reg*self.params['W%d' % (layer )]
+            grads['W%d'%(layer)]=dW
+            grads['b%d'%(layer)]=db
+
+            dout=np.dot(dout, self.params['W%d' % (layer)].T)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
 
         return loss, grads
+
+    def predict(self, X):
+        scores = self.loss(X)
+        y_pred = np.argmax(scores, axis=1)
+        return y_pred
+
+    def fix(self, X, y, X_val, y_val, lerrn_rate, num_epochs=100, verbose=True):
+        for i in range(num_epochs):
+            loss, grads = self.loss(X, y)
+            for j in range(self.num_layers-1):
+                self.params['W%d' % (j + 1)] += -lerrn_rate * grads['W%d' % (j + 1)]
+                self.params['b%d' % (j + 1)] += -lerrn_rate * grads['b%d' % (j + 1)]
+                if self.use_batchnorm:
+                    self.params['gama%d' % (j + 1)]+= -lerrn_rate*grads['gama%d'%(j+1)]
+                    self.params['beta%d' % (j + 1)] += -lerrn_rate * grads['beta%d' % (j + 1)]
+
+            train_acc = (self.predict(X) == y).mean()
+            val_acc = (self.predict(X_val) == y_val).mean()
+
+            if verbose:
+                print('Finished epoch %d / %d: loss %f, train_acc: %f, val_acc: %f' % (
+                i, num_epochs, loss, train_acc, val_acc))
+
+
+if __name__ == '__main__':
+    # 取数训练20
+    tr20 = np.loadtxt('E:/Jupyter/data/tr20.txt', delimiter=',', dtype='i2')
+    val50 = np.loadtxt('E:/Jupyter/data/val50.txt', delimiter=',', dtype='i2')
+
+    tr20_X = tr20[:, :3072]
+    tr20_X = tr20_X.reshape(20, 32, 32, 3, order="F")
+    tr20_X = tr20_X.transpose(0, 3, 1, 2)
+    val50_X = val50[:, :3072]
+    val50_X = val50_X.reshape(50, 32, 32, 3, order="F")
+    val50_X = val50_X.transpose(0, 3, 1, 2)
+    tr20_y = tr20[:, 3072]
+    val50_y = val50[:, 3072]
+
+    # tlc = TwoLayerNet(reg=200)
+    # tlc.fix(tr20_X, tr20_y, val50_X, val50_y, 1e-4, num_epochs=300)
+    fcn=FullyConnectedNet((100,100),dropout=0.2,use_batchnorm=True,reg=0.2)
+    fcn.fix(tr20_X, tr20_y, val50_X, val50_y, 1e-4, num_epochs=100)
+    # print(tlc.loss(input))

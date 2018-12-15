@@ -119,9 +119,9 @@ class ThreeLayerConvNet(object):
         dout, dW2, db2 = affine_relu_backward(dout, affi1_cache)
         dout, dW1, db1 = conv_relu_pool_backward(dout, conv_cache)
 
-        dW1 = self.reg * dW1
-        dW2 = self.reg * dW2
-        dW3 = self.reg * dW3
+        dW1 += self.reg * W1
+        dW2 += self.reg * W2
+        dW3 += self.reg * W3
 
         grads['dW1'] = dW1
         grads['db1'] = db1
@@ -163,7 +163,8 @@ if __name__ == '__main__':
     input=X.reshape(20, 32, 32, 3, order="F")
     input = input.transpose(0, 3, 1, 2)
     y = a[:,3072]
-    tlc=ThreeLayerConvNet(reg=1)
-    tlc.fix(input,y,input,y,1e-2,100,True)
+    tlc=ThreeLayerConvNet(reg=0)
+    tlc.fix(input,y,input,y,1e-4)
+    # print(tlc.loss(input))
 
 
