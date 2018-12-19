@@ -19,6 +19,8 @@ lib64/
 parts/
 sdist/
 var/
+
+*.sh
 *.egg-info/
 .installed.cfg
 *.egg
@@ -55,3 +57,5 @@ docs/_build/
 
 # PyBuilder
 target/
+
+*.sh
