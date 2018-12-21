@@ -207,17 +207,50 @@ class ComputeDepriveVarious(object):
         self.p_data['xw_5_max'] = max_5[:, 1]
         self.p_data['fd_5_min'] = min_5[:, 0]
         self.p_data['xw_5_min'] = min_5[:, 1]
-
-
-        # 计算5日均值变化率
+        # 计算5日均值变化趋势，变化率
         mean_5 = np.mean(data, axis=1).reshape(N, A, D)
-        shift_mean_5 = mean_5[1:N, :, :]
-        tendency_ratio = np.zeros(N, A, D)
+        tendency_5, tendency_5_ratio = self.compute_tendency(mean_5)
+        self.p_data['fd_5_tend'] = tendency_5[:, 0]
+        self.p_data['xw_5_tend'] = tendency_5[:, 1]
+        self.p_data['fd_5_tend_ratio'] = tendency_5_ratio[:, 0]
+        self.p_data['xw_5_tend_ratio'] = tendency_5_ratio[:, 1]
+
+        # 5日幅度、相位差
+        fdxwc_5 = np.zeros((N, 5, A, D))
+        data_shift = data[1:N, :, :, :]
         for i in range(N - 1):
-            tendency_ratio[i + 1] = (shift_mean_5[i] - mean_5[i]) / mean_5[i]
-        tendency_ratio = tendency_ratio.reshape(-1, D)
-        self.p_data['fd_5_tend_ratio'] = tendency_ratio[:, 0]
-        self.p_data['xw_5_tend_ratio'] = tendency_ratio[:, 1]
+            fdxwc_5[i + 1] = data_shift[i] - data[i]
+        # 5日幅度、相位差 均值
+        fdxwc_avg_5 = np.mean(fdxwc_5, axis=1).reshape(N, A, D)
+        fdxwc_5_avg = fdxwc_avg_5.reshape(-1, D)
+        self.p_data['fdc_5_avg'] = fdxwc_5_avg[:, 0]
+        self.p_data['xwc_5_avg'] = fdxwc_5_avg[:, 1]
+        # 幅度、相位差 均值 变化趋势（分母可能有很多为0 的情况，所以不要求计算变化率）
+        tendency_5 = self.compute_tendency(fdxwc_avg_5, need_ratio=False)
+        self.p_data['fdc_5_avg_tend'] = tendency_5[:, 0]
+        self.p_data['xwc_5_avg_tend'] = tendency_5[:, 1]
+        # 相位差fdxwc_5极大极小值
+        max_5_fdxwc = np.max(fdxwc_5, axis=1).reshape(-1, D)
+        min_5_fdxwc = np.min(fdxwc_5, axis=1).reshape(-1, D)
+        self.p_data['fdc_5_max'] = max_5_fdxwc[:, 0]
+        self.p_data['xwc_5_max'] = max_5_fdxwc[:, 1]
+        self.p_data['fdc_5_min'] = min_5_fdxwc[:, 0]
+        self.p_data['xwc_5_min'] = min_5_fdxwc[:, 1]
+
+        # 极值差
+        peak_diff = (np.max(data, axis=1) - np.min(data, axis=1)).reshape(N, A, D)
+        fdxw_peak_diff_5 = self.compute_tendency(peak_diff, need_ratio=False)
+        self.p_data['fd_peak_diff_tend_5'] = fdxw_peak_diff_5[:, 0]
+        self.p_data['xw_peak_diff_tend_5'] = fdxw_peak_diff_5[:, 1]
+        # 极值差 差异
+        shift_peak_diff = peak_diff[1:N, :, :]
+        peak_diff_c = np.zeros_like(peak_diff)
+        for i in range(N - 1):
+            peak_diff_c[i + 1] = shift_peak_diff[i] - peak_diff[i]
+        # 极值差 差异 趋势
+        tendency_5_peak_diff_c = self.compute_tendency(peak_diff_c)
+        self.p_data['fd_peak_diff_c_tend_5'] = tendency_5_peak_diff_c[:, 0]
+        self.p_data['xw_peak_diff_c_tend_5'] = tendency_5_peak_diff_c[:, 1]
 
     def compute_tendency(self, data, need_ratio=True):
         """
