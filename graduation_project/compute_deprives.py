@@ -280,30 +280,4 @@ class ComputeDepriveVarious(object):
 
 
 if __name__ == '__main__':
-    dd = {'Name': ['Tom', 'Jack', "Alice", 'LIli', "DD"], 'Age': [28, 34, 29, 28, 34], "Sex": [1, 1, 0, 0, 1],
-          'date': ['2018-1-1', '2018-1-2', '2018-1-3', '2018-1-4', '2018-1-2']}
-    pdd = pd.DataFrame(dd)
-    # s=list(set(pdd['Age']))
-    # print s
-    # print pdd
-    # print np.array(pdd)
-    # print np.sort(list(s))
-    print pdd
-    a = pdd.groupby('date')
-    # print a["date"].describe()
-    # print a["date"].count()
-    # print a['date'].count().min()
-    print a.size()
-    # # print len(pdd.columns)
-    print len(a)
-    for name, group in a:
-        print name
-        print group
-
-    print '------------'
-    # pieces=dict(list(a))
-    # print type(pieces['2018-1-1'])
-    # print type(pieces['2018-1-1']['Age'])
-    #
-    # print type(pieces['2018-1-1']['Age'][0])
-    print pd.DataFrame(columns=pdd.columns)
+	pass
