@@ -71,7 +71,7 @@ class PreSampling(object):
         # sampling 5days
         day_steps_list = pd.DataFrame()
         for date, one_day in p_data.groupby("date"):  # days
-            date_index = self.date_list.index(date)
+            date_index = self.date_list.index(date) + 1
             day_list = pd.DataFrame()
             for i in range(steps):
                 start = (date_index - (i + 1) * length) * aisles
@@ -126,6 +126,7 @@ class ComputeDepriveVarious(object):
         for i in range(N - 1):
             fdxwc[i + 1] = data_shift[i] - data[i]
         # 幅度、相位差  变化趋势（分母可能有很多为0 的情况，所以不要求计算变化率）
+        fdxwc=np.abs(fdxwc)
         tendency_1 = self.compute_tendency(fdxwc, need_ratio=False)
         self.p_data['fdc_1_tend'] = tendency_1[:, 0]
         self.p_data['xwc_1_tend'] = tendency_1[:, 1]
@@ -165,6 +166,7 @@ class ComputeDepriveVarious(object):
         self.p_data['fdc_3_avg'] = fdxwc_3_avg[:, 0]
         self.p_data['xwc_3_avg'] = fdxwc_3_avg[:, 1]
         # 幅度、相位差 均值 变化趋势（分母可能有很多为0 的情况，所以不要求计算变化率）
+        fdxwc_avg_3=np.abs(fdxwc_avg_3)
         tendency_3 = self.compute_tendency(fdxwc_avg_3, need_ratio=False)
         self.p_data['fdc_3_avg_tend'] = tendency_3[:, 0]
         self.p_data['xwc_3_avg_tend'] = tendency_3[:, 1]
@@ -187,6 +189,7 @@ class ComputeDepriveVarious(object):
         for i in range(N - 1):
             peak_diff_c[i + 1] = shift_peak_diff[i] - peak_diff[i]
         # 极值差 差异 趋势
+        peak_diff_c=np.abs(peak_diff_c)
         tendency_3_peak_diff_c = self.compute_tendency(peak_diff_c)
         self.p_data['fd_peak_diff_c_tend_3'] = tendency_3_peak_diff_c[:, 0]
         self.p_data['xw_peak_diff_c_tend_3'] = tendency_3_peak_diff_c[:, 1]
@@ -226,6 +229,7 @@ class ComputeDepriveVarious(object):
         self.p_data['fdc_5_avg'] = fdxwc_5_avg[:, 0]
         self.p_data['xwc_5_avg'] = fdxwc_5_avg[:, 1]
         # 幅度、相位差 均值 变化趋势（分母可能有很多为0 的情况，所以不要求计算变化率）
+        fdxwc_avg_5=np.abs(fdxwc_avg_5)
         tendency_5 = self.compute_tendency(fdxwc_avg_5, need_ratio=False)
         self.p_data['fdc_5_avg_tend'] = tendency_5[:, 0]
         self.p_data['xwc_5_avg_tend'] = tendency_5[:, 1]
@@ -248,6 +252,7 @@ class ComputeDepriveVarious(object):
         for i in range(N - 1):
             peak_diff_c[i + 1] = shift_peak_diff[i] - peak_diff[i]
         # 极值差 差异 趋势
+        peak_diff_c=np.abs(peak_diff_c)
         tendency_5_peak_diff_c = self.compute_tendency(peak_diff_c)
         self.p_data['fd_peak_diff_c_tend_5'] = tendency_5_peak_diff_c[:, 0]
         self.p_data['xw_peak_diff_c_tend_5'] = tendency_5_peak_diff_c[:, 1]
@@ -278,6 +283,38 @@ class ComputeDepriveVarious(object):
         else:
             return tendency
 
+    def compute(self):
+        self.compute_one_day()
+        self.compute_three_days()
+        self.compute_five_days()
+
+        return self.p_data
 
 if __name__ == '__main__':
-	pass
+    dd = {'Name': ['Tom', 'Jack', "Alice", 'LIli', "DD"], 'Age': [28, 34, 29, 28, 34], "Sex": [1, 1, 0, 0, 1],
+          'date': ['2018-1-1', '2018-1-2', '2018-1-3', '2018-1-4', '2018-1-2']}
+    pdd = pd.DataFrame(dd)
+    # s=list(set(pdd['Age']))
+    # print s
+    # print pdd
+    # print np.array(pdd)
+    # print np.sort(list(s))
+    print pdd
+    a = pdd.groupby('date')
+    # print a["date"].describe()
+    # print a["date"].count()
+    # print a['date'].count().min()
+    print a.size()
+    # # print len(pdd.columns)
+    print len(a)
+    for name, group in a:
+        print name
+        print group
+
+    print '------------'
+    # pieces=dict(list(a))
+    # print type(pieces['2018-1-1'])
+    # print type(pieces['2018-1-1']['Age'])
+    #
+    # print type(pieces['2018-1-1']['Age'][0])
+    print pd.DataFrame(columns=pdd.columns)
