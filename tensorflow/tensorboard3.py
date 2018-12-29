@@ -10,7 +10,7 @@ max_steps=1001
 #图片数量
 image_num=3000
 #文件路径
-DIR="E:\Jupyter"
+DIR="E://Jupyter"
 
 #定义会话
 sess=tf.Session()
